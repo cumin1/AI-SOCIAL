@@ -1,0 +1,48 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+flutter_*.png
+
+# IDEs and editors
+.idea/
+.vscode/
+*.iml
+
+# Android
+android/.gradle/
+android/app/release/
+android/**/gradle-wrapper.jar
+
+# iOS
+ios/Pods/
+ios/.generated/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# macOS
+macos/Pods/
+
+# Linux/Windows ephemeral
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# Web generated
+lib/generated_plugin_registrant.dart
+
+# Env/API keys - do not commit secrets
+env/
+assets/env/
+.env
+.env.*
+*.env
+*.keystore
+*.jks
+*.p12
+*.pem
+*.key
+*.cer
+*.mobileprovision
+
+
