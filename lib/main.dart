@@ -206,16 +206,7 @@ class _ProfilePage extends StatelessWidget {
           const SizedBox(height: 12),
           const _PersonaCard(),
           const SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.emoji_events_outlined),
-              title: const Text('徽章与成长'),
-              subtitle: const Text('陪伴指数、连续打卡、固定搭子'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {},
-            ),
-          ),
-          const SizedBox(height: 12),
+
           Card(
             child: ListTile(
               leading: const Icon(Icons.style_outlined),
@@ -296,8 +287,6 @@ class _PersonaCard extends StatefulWidget {
 
 class _PersonaCardState extends State<_PersonaCard> {
   String? _summary;
-  List<String> _traits = const [];
-  List<String> _tags = const [];
 
   @override
   void initState() {
@@ -310,8 +299,6 @@ class _PersonaCardState extends State<_PersonaCard> {
     if (!mounted) return;
     setState(() {
       _summary = persona?.summary;
-      _traits = persona?.traits ?? const [];
-      _tags = persona?.selectedTags ?? const [];
     });
   }
 
@@ -327,23 +314,6 @@ class _PersonaCardState extends State<_PersonaCard> {
             Text('你的画像', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(_summary!),
-            if (_traits.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: _traits.map((t) => Chip(label: Text(t))).toList(),
-              ),
-            ],
-            if (_tags.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text('你的标签', style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _tags.map((t) => Chip(label: Text(t))).toList(),
-              ),
-            ],
           ],
         ),
       ),

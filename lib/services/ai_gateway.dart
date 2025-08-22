@@ -167,15 +167,36 @@ class AiGateway {
   }
 
   List<String> _inferTraits(List<String> tags) {
-    final List<String> traits = <String>[];
-    if (tags.any((t) => t.contains('安静') || t.contains('独处')))
-      traits.add('内向稳定');
-    if (tags.any((t) => t.contains('探索') || t.contains('思考')))
-      traits.add('好奇理性');
-    if (tags.any((t) => t.contains('音乐') || t.contains('艺术')))
-      traits.add('感性细腻');
-    if (traits.isEmpty) traits.add('温和可信');
-    return traits;
+    final Set<String> traits = <String>{};
+    // Buckets
+    final bool introvert = tags.any((t) => t.contains('安静') || t.contains('独处') || t.contains('慢热'));
+    final bool empathy = tags.any((t) => t.contains('共情') || t.contains('倾听'));
+    final bool rational = tags.any((t) => t.contains('理性') || t.contains('思考') || t.contains('探索'));
+    final bool art = tags.any((t) => t.contains('音乐') || t.contains('艺术') || t.contains('文学') || t.contains('摄影') || t.contains('电影'));
+    final bool outdoor = tags.any((t) => t.contains('徒步') || t.contains('露营') || t.contains('跑步') || t.contains('瑜伽'));
+    final bool safety = tags.any((t) => t.contains('社恐') || t.contains('焦虑') || t.contains('需要安全感'));
+
+    if (introvert) traits.addAll(['内向稳定', '慢热沉静']);
+    if (empathy) traits.addAll(['耐心倾听', '共情敏锐']);
+    if (rational) traits.addAll(['好奇理性', '条理清晰']);
+    if (art) traits.addAll(['感性细腻', '审美在线']);
+    if (outdoor) traits.addAll(['户外活力', '自我修复']);
+    if (safety) traits.addAll(['社交谨慎', '需要边界感']);
+
+    // General positive anchors
+    traits.addAll(['真诚开放', '温和可信']);
+
+    // Ensure 6-10 items
+    final List<String> pool = [
+      '自我反思', '稳重可靠', '表达克制', '细节敏感', '好奇探索', '情绪稳定', '乐于助人', '独立自主', '专注当下', '包容体谅',
+    ];
+    int i = 0;
+    while (traits.length < 6 && i < pool.length) {
+      traits.add(pool[i]);
+      i++;
+    }
+    final List<String> out = traits.take(10).toList();
+    return out;
   }
 
   String _inferMoodBias(List<String> tags) {
