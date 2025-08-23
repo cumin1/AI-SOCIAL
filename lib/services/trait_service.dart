@@ -13,7 +13,9 @@ class TraitService {
     if (jsonStr == null || jsonStr.isEmpty) return <UserTrait>[];
     try {
       final List<dynamic> list = jsonDecode(jsonStr) as List<dynamic>;
-      return list.map((e) => UserTrait.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => UserTrait.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       return <UserTrait>[];
     }
@@ -30,5 +32,3 @@ class TraitService {
     await prefs.remove(_key);
   }
 }
-
-

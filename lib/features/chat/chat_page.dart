@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'widgets/message_bubble.dart';
+import '../../services/ai_gateway.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -13,22 +14,25 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _controller = TextEditingController();
   final List<_Msg> _messages = <_Msg>[];
   String? _currentMood; // current mood tag for next message
+  final AiGateway _ai = AiGateway();
 
   final List<String> _moods = const ['🙂 放松', '🤝 信任', '🫶 共情', '🤔 思考', '😌 平静', '😟 焦虑'];
 
-  void _send() {
+  Future<void> _send() async {
     final String text = _controller.text.trim();
     if (text.isEmpty) return;
     setState(() {
       _messages.add(_Msg(text: text, mine: true, mood: _currentMood));
       _controller.clear();
-      // Simulate slow/soft reply
-      Future<void>.delayed(const Duration(milliseconds: 600), () {
-        if (!mounted) return;
-        setState(() {
-          _messages.add(_Msg(text: '收到啦，我在听你说。', mine: false));
-        });
-      });
+    });
+    final String moodHint = _currentMood ?? '';
+    final String reply = await _ai.emotionalSupportReply(
+      userText: text,
+      contextHint: moodHint.isEmpty ? null : moodHint,
+    );
+    if (!mounted) return;
+    setState(() {
+      _messages.add(_Msg(text: reply, mine: false));
     });
   }
 

@@ -110,7 +110,7 @@ class _RootShellState extends State<_RootShell> {
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: '发现'),
+          BottomNavigationBarItem(icon: Icon(Icons.explore), label: '活动'),
           BottomNavigationBarItem(
             icon: Icon(Icons.chat_bubble_rounded),
             label: '聊天',
@@ -128,37 +128,23 @@ class _DiscoverPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('发现')),
+      appBar: AppBar(title: const Text('活动')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('匹配与活动', style: Theme.of(context).textTheme.titleLarge),
+          Text('活动', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('开始匹配', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text(
-                    '基于相似/互补策略，找到合适的对话或线下组队对象。',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(onPressed: () {}, child: const Text('开始')),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
             child: ListTile(
-              title: const Text('附近线下据点'),
-              subtitle: const Text('咖啡店、书店，支持扫码打卡'),
+              leading: const Icon(Icons.forum_outlined),
+              title: const Text('进入聊天室'),
+              subtitle: const Text('与大家轻松交流；AI 会在你发言后提供情绪陪伴式回复'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {},
+              onTap: () {
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const ChatPage()));
+              },
             ),
           ),
         ],

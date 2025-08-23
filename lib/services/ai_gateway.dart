@@ -147,6 +147,52 @@ class AiGateway {
     return PersonaWithTraits(persona: persona, traits: userTraits);
   }
 
+  // Generate an emotional support reply for a user's shared experience.
+  // The reply should be short, warm, validating, and optionally include one short reflective observation.
+  Future<String> emotionalSupportReply({
+    required String userText,
+    String? contextHint, // optional extra context, e.g., mood tag or topic
+  }) async {
+    final String? apiKey = dotenv.env['DEEPSEEK_API_KEY'];
+    if (apiKey == null || apiKey.isEmpty) {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      return _supportStub(userText, contextHint);
+    }
+
+    try {
+      final Uri uri = Uri.parse('https://api.deepseek.com/v1/chat/completions');
+      final String systemPrompt = _supportSystemPrompt();
+      final String userPrompt = _supportUserPrompt(userText, contextHint);
+      final Map<String, dynamic> body = {
+        'model': 'deepseek-chat',
+        'messages': [
+          {'role': 'system', 'content': systemPrompt},
+          {'role': 'user', 'content': userPrompt},
+        ],
+        'temperature': 0.5,
+      };
+      final http.Response resp = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: jsonEncode(body),
+      );
+      if (resp.statusCode >= 200 && resp.statusCode < 300) {
+        final Map<String, dynamic> data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final List choices = (data['choices'] as List? ?? <dynamic>[]);
+        final String content = choices.isNotEmpty
+            ? (choices.first['message']?['content'] as String? ?? '')
+            : '';
+        return content.trim().isEmpty ? _supportStub(userText, contextHint) : content.trim();
+      }
+    } catch (_) {
+      // fallthrough to stub
+    }
+    return _supportStub(userText, contextHint);
+  }
+
   // Backward compatibility: return only persona
   Future<Persona> generatePersona({
     required String userId,
@@ -169,12 +215,31 @@ class AiGateway {
   List<String> _inferTraits(List<String> tags) {
     final Set<String> traits = <String>{};
     // Buckets
-    final bool introvert = tags.any((t) => t.contains('安静') || t.contains('独处') || t.contains('慢热'));
+    final bool introvert = tags.any(
+      (t) => t.contains('安静') || t.contains('独处') || t.contains('慢热'),
+    );
     final bool empathy = tags.any((t) => t.contains('共情') || t.contains('倾听'));
-    final bool rational = tags.any((t) => t.contains('理性') || t.contains('思考') || t.contains('探索'));
-    final bool art = tags.any((t) => t.contains('音乐') || t.contains('艺术') || t.contains('文学') || t.contains('摄影') || t.contains('电影'));
-    final bool outdoor = tags.any((t) => t.contains('徒步') || t.contains('露营') || t.contains('跑步') || t.contains('瑜伽'));
-    final bool safety = tags.any((t) => t.contains('社恐') || t.contains('焦虑') || t.contains('需要安全感'));
+    final bool rational = tags.any(
+      (t) => t.contains('理性') || t.contains('思考') || t.contains('探索'),
+    );
+    final bool art = tags.any(
+      (t) =>
+          t.contains('音乐') ||
+          t.contains('艺术') ||
+          t.contains('文学') ||
+          t.contains('摄影') ||
+          t.contains('电影'),
+    );
+    final bool outdoor = tags.any(
+      (t) =>
+          t.contains('徒步') ||
+          t.contains('露营') ||
+          t.contains('跑步') ||
+          t.contains('瑜伽'),
+    );
+    final bool safety = tags.any(
+      (t) => t.contains('社恐') || t.contains('焦虑') || t.contains('需要安全感'),
+    );
 
     if (introvert) traits.addAll(['内向稳定', '慢热沉静']);
     if (empathy) traits.addAll(['耐心倾听', '共情敏锐']);
@@ -188,7 +253,16 @@ class AiGateway {
 
     // Ensure 6-10 items
     final List<String> pool = [
-      '自我反思', '稳重可靠', '表达克制', '细节敏感', '好奇探索', '情绪稳定', '乐于助人', '独立自主', '专注当下', '包容体谅',
+      '自我反思',
+      '稳重可靠',
+      '表达克制',
+      '细节敏感',
+      '好奇探索',
+      '情绪稳定',
+      '乐于助人',
+      '独立自主',
+      '专注当下',
+      '包容体谅',
     ];
     int i = 0;
     while (traits.length < 6 && i < pool.length) {
@@ -200,9 +274,12 @@ class AiGateway {
   }
 
   String _inferMoodBias(List<String> tags) {
-    if (tags.any((t) => t.contains('焦虑') || t.contains('社恐')))
+    if (tags.any((t) => t.contains('焦虑') || t.contains('社恐'))) {
       return '敏感/需要安全感';
-    if (tags.any((t) => t.contains('运动') || t.contains('户外'))) return '积极/外向';
+    }
+    if (tags.any((t) => t.contains('运动') || t.contains('户外'))) {
+      return '积极/外向';
+    }
     return '平静/耐心';
   }
 }
@@ -229,4 +306,22 @@ String _personaUserPrompt(
       ? ''
       : '\n以下是问答：${answers.map((e) => 'Q:${e['q']} A:${e['a']}').join('；')}';
   return '以下是用户自己选择的标签：$joined$qa\n请根据这些信息生成人设 JSON，包含 5-10 条 userTraits。只输出 JSON。';
+}
+
+String _supportSystemPrompt() =>
+    '你是一个温和的情绪支持陪伴者。请用中文，语气温暖、共情、不评判，不讲大道理，不给强指令，字数不超过120字。'
+    '优先：接住感受、确认价值、轻微反映与共鸣、给到可选的小步建议。禁止输出任何JSON或代码。';
+
+String _supportUserPrompt(String userText, String? contextHint) {
+  final String hint = (contextHint == null || contextHint.trim().isEmpty)
+      ? ''
+      : '\n额外线索（可选）：$contextHint';
+  return '以下是用户的分享，请以“情绪价值陪伴”的方式简短回复：\n$userText$hint';
+}
+
+String _supportStub(String userText, String? contextHint) {
+  final String hint = (contextHint != null && contextHint.trim().isNotEmpty)
+      ? '我听见你在【$contextHint】中的心情。'
+      : '我在认真听你说。';
+  return '$hint谢谢你把这段经历说出来，这并不容易。你的感觉很真实也值得被看见。不用急着解决，先允许自己这么感受；如果愿意，我们可以一起慢慢理一理。';
 }

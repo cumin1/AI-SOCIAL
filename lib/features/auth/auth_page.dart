@@ -26,6 +26,22 @@ class _AuthPageState extends State<AuthPage> {
     widget.onSignedIn(profile);
   }
 
+  Future<void> _loginWithEmail() async {
+    final String email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请输入有效邮箱地址')),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+    final Profile profile = _profileService.generateFromEmail(email);
+    await _profileService.saveProfile(profile);
+    if (!mounted) return;
+    widget.onSignedIn(profile);
+  }
+
   @override
   Widget build(BuildContext context) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
@@ -55,8 +71,8 @@ class _AuthPageState extends State<AuthPage> {
             ),
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: null, // mock placeholder
-              child: const Text('使用邮箱登录 (占位)'),
+              onPressed: _isLoading ? null : _loginWithEmail,
+              child: const Text('使用邮箱登录'),
             ),
             const SizedBox(height: 24),
             Text('手机号', style: Theme.of(context).textTheme.titleMedium),
@@ -69,7 +85,7 @@ class _AuthPageState extends State<AuthPage> {
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: null, // mock placeholder
-              child: const Text('短信验证码登录 (占位)'),
+              child: const Text('短信验证码登录 (开发测试中)'),
             ),
             const SizedBox(height: 32),
             Text(

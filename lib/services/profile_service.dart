@@ -19,6 +19,20 @@ class ProfileService {
     }
   }
 
+  // Generates a local profile from email without backend.
+  // userId will be 'mail_<hash>', displayName is anonymized nickname from local seed.
+  Profile generateFromEmail(String email) {
+    final String trimmed = email.trim().toLowerCase();
+    final int seed = trimmed.hashCode & 0x7FFFFFFF;
+    final String name = _generateAnonName(seed).replaceAll('#', '@');
+    return Profile(
+      userId: 'mail_${seed.toRadixString(16)}',
+      displayName: name,
+      avatarSeed: seed % 1000,
+      isAnonymous: false,
+    );
+  }
+
   Future<void> saveProfile(Profile profile) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, jsonEncode(profile.toJson()));

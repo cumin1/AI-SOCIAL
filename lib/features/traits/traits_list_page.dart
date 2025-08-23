@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../services/trait_service.dart';
 import '../../data/models/trait.dart';
 import 'traits_detail_page.dart';
+import '../../data/models/profile.dart';
+import '../../services/profile_service.dart';
+import '../onboarding/tag_select_page.dart';
 
 class TraitsListPage extends StatefulWidget {
   const TraitsListPage({super.key});
@@ -26,25 +29,87 @@ class _TraitsListPageState extends State<TraitsListPage> {
     setState(() => _traits = list);
   }
 
+  Future<void> _startOnboarding() async {
+    final profileSvc = ProfileService();
+    Profile? profile = await profileSvc.loadProfile();
+    if (profile == null) {
+      profile = profileSvc.generateAnonymous();
+      await profileSvc.saveProfile(profile);
+    }
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TagSelectPage(
+          profile: profile!,
+          onDone: () async {
+            // After AI generation completes, reload traits
+            await _load();
+            if (mounted) Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+    if (mounted) {
+      await _load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('我的特质')),
+      appBar: AppBar(
+        title: const Text('我的特质'),
+        actions: [
+          IconButton(
+            tooltip: '刷新',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _load,
+          ),
+          IconButton(
+            tooltip: '重新生成（AI）',
+            icon: const Icon(Icons.auto_awesome_rounded),
+            onPressed: () async {
+              await TraitService().clearTraits();
+              if (!mounted) return;
+              await _startOnboarding();
+            },
+          ),
+        ],
+      ),
       body: _traits.isEmpty
-          ? const Center(child: Text('暂无特质，请完成标签和问答生成画像'))
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 3 / 4.2,
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('暂无特质卡片\n请选择标签并回答问题，由AI为你生成画像与特质。', textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _startOnboarding,
+                      icon: const Icon(Icons.auto_awesome_rounded),
+                      label: const Text('去生成我的特质'),
+                    ),
+                  ],
+                ),
               ),
-              itemCount: _traits.length,
-              itemBuilder: (context, idx) {
-                final t = _traits[idx];
-                return _TraitCard(trait: t);
-              },
+            )
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  mainAxisExtent: 280,
+                ),
+                itemCount: _traits.length,
+                itemBuilder: (context, idx) {
+                  final t = _traits[idx];
+                  return _TraitCard(trait: t);
+                },
+              ),
             ),
     );
   }
@@ -74,7 +139,7 @@ class _TraitCard extends StatelessWidget {
           children: [
             // Cover area with gradient + subtle decorations
             SizedBox(
-              height: 130,
+              height: 108,
               width: double.infinity,
               child: Stack(
                 children: [
@@ -92,12 +157,18 @@ class _TraitCard extends StatelessWidget {
                   Positioned(
                     right: -20,
                     top: -10,
-                    child: _bubble(70, cover.decoration.withValues(alpha: 0.14)),
+                    child: _bubble(
+                      70,
+                      cover.decoration.withValues(alpha: 0.14),
+                    ),
                   ),
                   Positioned(
                     left: -10,
                     bottom: -15,
-                    child: _bubble(56, cover.decoration.withValues(alpha: 0.12)),
+                    child: _bubble(
+                      56,
+                      cover.decoration.withValues(alpha: 0.12),
+                    ),
                   ),
                   // title + icon
                   Positioned(
@@ -107,17 +178,21 @@ class _TraitCard extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Icon(cover.icon, color: cover.onColor.withValues(alpha: 0.9)),
+                        Icon(
+                          cover.icon,
+                          color: cover.onColor.withValues(alpha: 0.9),
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             trait.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(color: cover.onColor, fontWeight: FontWeight.w600),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: cover.onColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ),
                       ],
@@ -127,17 +202,17 @@ class _TraitCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
               child: Text(
                 trait.description,
-                maxLines: 3,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             // metrics footer: replace repetitive tags with compact visual indicators
-            const SizedBox(height: 4),
+            // keep content compact; no extra bottom spacer to avoid overflow
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -163,6 +238,7 @@ class _TraitCard extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 2),
           ],
         ),
       ),
@@ -181,7 +257,10 @@ class _CoverStyle {
 _CoverStyle _coverFromSeed(ColorScheme scheme, int seed) {
   final variants = <_CoverStyle>[
     _CoverStyle(
-      [scheme.primary.withValues(alpha: 0.92), scheme.secondary.withValues(alpha: 0.85)],
+      [
+        scheme.primary.withValues(alpha: 0.92),
+        scheme.secondary.withValues(alpha: 0.85),
+      ],
       scheme.onPrimary,
       scheme.tertiary,
       Icons.local_fire_department_rounded,
@@ -221,17 +300,22 @@ Widget _bubble(double size, Color color) {
   return Container(
     width: size,
     height: size,
-    decoration: BoxDecoration(
-      color: color,
-      shape: BoxShape.circle,
-    ),
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
   );
 }
 
-Widget _metricPill(BuildContext context, {required IconData icon, required String label, required int value}) {
+Widget _metricPill(
+  BuildContext context, {
+  required IconData icon,
+  required String label,
+  required int value,
+}) {
   final ColorScheme scheme = Theme.of(context).colorScheme;
   return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    padding: const EdgeInsets.symmetric(
+      horizontal: 6,
+      vertical: 5,
+    ), // Compact metric pill padding
     decoration: ShapeDecoration(
       color: scheme.surfaceContainerHighest,
       shape: const StadiumBorder(),
